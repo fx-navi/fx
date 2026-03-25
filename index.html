@@ -35,4 +35,101 @@
         .res-val { display: block; font-size: 1.3rem; font-weight: bold; margin-top: 5px; }
 
         .btn-save { width: 100%; padding: 16px; background: var(--success); color: #fff; border: none; border-radius: 14px; font-size: 1rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
-        #timestamp { font-size: 0.65rem; color: #999; text-align: center; margin-top:
+        #timestamp { font-size: 0.65rem; color: #999; text-align: center; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="capture-area">
+    <div style="text-align:center; font-weight:bold; color:var(--primary); margin-bottom:15px;">FX資金管理シミュレーター</div>
+
+    <span class="step-tag">STEP 1</span>
+    <label class="label">手元資金 (円)</label>
+    <input type="number" id="capital" value="100000" oninput="calculate()">
+
+    <span class="step-tag">STEP 2</span>
+    <label class="label">レバレッジ選択</label>
+    <div class="lev-grid">
+        <button class="lev-btn" onclick="setLev(1, this)">1倍</button>
+        <button class="lev-btn" onclick="setLev(5, this)">5倍</button>
+        <button class="lev-btn active" onclick="setLev(10, this)">10倍</button>
+        <button class="lev-btn" onclick="setLev(25, this)">25倍</button>
+    </div>
+
+    <span class="step-tag">STEP 3</span>
+    <label class="label">現在のドル円レート</label>
+    <input type="number" id="rate" step="0.01" value="150.00" oninput="calculate()">
+
+    <div class="rec-box">
+        <span class="label" style="color:var(--primary); margin-bottom:0;">推奨の注文数 (目安)</span>
+        <span class="rec-num" id="rec-units">0</span>
+        <small style="color:#666">これより少ない数で注文してください</small>
+    </div>
+
+    <div class="manual-box">
+        <span class="step-tag" style="background:var(--primary)">STEP 4</span>
+        <label class="label" style="color:var(--primary)">実際に注文する通貨数を入力</label>
+        <input type="number" id="manual-units" class="manual-input" placeholder="例: 5000" oninput="calculate()">
+    </div>
+
+    <div class="res-grid">
+        <div class="res-card">
+            <span class="label" style="color:var(--danger)">損切り幅</span>
+            <span class="res-val" id="res-sl" style="color:var(--danger)">0.0 pips</span>
+            <small id="risk-jpy" style="color:#999"></small>
+        </div>
+        <div class="res-card">
+            <span class="label" style="color:var(--success)">利確幅</span>
+            <span class="res-val" id="res-tp" style="color:var(--success)">0.0 pips</span>
+            <small style="color:#999">リスク比 1:2</small>
+        </div>
+    </div>
+    
+    <div id="timestamp"></div>
+    <button class="btn-save" id="save-btn" onclick="saveImage()">📸 トレード計画を画像で保存</button>
+</div>
+
+<script>
+    let leverage = 10;
+    async function fetchRate() {
+        try {
+            const res = await fetch('https://open.er-api.com/v6/latest/USD');
+            const data = await res.json();
+            document.getElementById('rate').value = data.rates.JPY.toFixed(2);
+            calculate();
+        } catch (e) {}
+    }
+    function setLev(val, btn) {
+        leverage = val;
+        document.querySelectorAll('.lev-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        calculate();
+    }
+    function calculate() {
+        const cap = parseFloat(document.getElementById('capital').value) || 0;
+        const rate = parseFloat(document.getElementById('rate').value) || 0;
+        const manual = parseFloat(document.getElementById('manual-units').value);
+        const recUnits = Math.floor((cap * leverage) / rate);
+        document.getElementById('rec-units').innerText = recUnits.toLocaleString();
+        const activeUnits = (manual > 0) ? manual : recUnits;
+        const riskJpy = Math.floor(cap * 0.02);
+        const slPips = activeUnits > 0 ? (riskJpy / activeUnits) * 100 : 0;
+        document.getElementById('res-sl').innerText = slPips.toFixed(1) + " pips";
+        document.getElementById('res-tp').innerText = (slPips * 2).toFixed(1) + " pips";
+        document.getElementById('risk-jpy').innerText = `(${riskJpy.toLocaleString()}円損)`;
+        document.getElementById('timestamp').innerText = "計算日時: " + new Date().toLocaleString();
+    }
+    function saveImage() {
+        document.getElementById('save-btn').style.display = 'none';
+        html2canvas(document.querySelector("#capture-area"), { scale: 2, backgroundColor: "#F2F2F7" }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `FXトレードメモ_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            document.getElementById('save-btn').style.display = 'block';
+        });
+    }
+    fetchRate();
+</script>
+</body>
+</html>
