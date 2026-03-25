@@ -34,4 +34,144 @@
 
         /* 最終注文結果 */
         .order-summary { background: #1C1C1E; color: #FFF; border-radius: 16px; padding: 20px; margin-top: 10px; }
-        .order-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom
+        .order-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .order-val { font-family: monospace; font-size: 1.4rem; font-weight: bold; }
+        .order-label { color: #AAA; font-size: 0.8rem; }
+
+        .btn-save { width: 100%; padding: 16px; background: #444; color: #fff; border: none; border-radius: 14px; font-size: 1rem; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        #timestamp { font-size: 0.65rem; color: #999; text-align: center; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="capture-area">
+    <div style="text-align:center; font-weight:bold; color:var(--primary); margin-bottom:15px;">FX注文ナビゲーター</div>
+
+    <span class="step-tag">STEP 1</span>
+    <label class="label">売買の選択</label>
+    <div class="type-grid">
+        <button class="type-btn buy active" id="btn-buy" onclick="setType('BUY')">買い (LONG)</button>
+        <button class="type-btn sell" id="btn-sell" onclick="setType('SELL')">売り (SHORT)</button>
+    </div>
+
+    <span class="step-tag">STEP 2</span>
+    <label class="label">手元資金 (円)</label>
+    <input type="number" id="capital" value="100000" oninput="calculate()">
+
+    <span class="step-tag">STEP 3</span>
+    <label class="label">レバレッジ</label>
+    <div class="lev-grid">
+        <button class="lev-btn" onclick="setLev(1, this)">1倍</button>
+        <button class="lev-btn" onclick="setLev(5, this)">5倍</button>
+        <button class="lev-btn active" onclick="setLev(10, this)">10倍</button>
+        <button class="lev-btn" onclick="setLev(25, this)">25倍</button>
+    </div>
+
+    <span class="step-tag">STEP 4</span>
+    <label class="label">指値・エントリー価格 (USD/JPY)</label>
+    <input type="number" id="entry-price" step="0.001" value="150.000" oninput="calculate()">
+
+    <div class="highlight-box">
+        <span class="label" style="color:var(--primary); margin-bottom:0;">推奨の最大通貨数</span>
+        <span class="rec-num" id="rec-units">0</span>
+    </div>
+
+    <div class="manual-box">
+        <label class="label" style="color:var(--primary)">実際に注文する通貨数</label>
+        <input type="number" id="manual-units" style="font-size:1.5rem; text-align:center; border-color:var(--primary);" placeholder="例: 5000" oninput="calculate()">
+    </div>
+
+    <span class="step-tag" style="background:var(--primary)">FINAL STEP</span>
+    <label class="label">注文アプリへの入力目安</label>
+    <div class="order-summary">
+        <div class="order-row">
+            <span class="order-label">指値 (Entry)</span>
+            <span class="order-val" id="disp-entry">---</span>
+        </div>
+        <div class="order-row">
+            <span class="order-label">逆指値 (損切り)</span>
+            <span class="order-val" style="color:var(--sell)" id="disp-sl">---</span>
+        </div>
+        <div class="order-row" style="border:none;">
+            <span class="order-label">指値 (利確)</span>
+            <span class="order-val" style="color:var(--buy)" id="disp-tp">---</span>
+        </div>
+    </div>
+    
+    <div id="timestamp"></div>
+    <button class="btn-save" id="save-btn" onclick="saveImage()">📸 この設定を保存する</button>
+</div>
+
+<script>
+    let leverage = 10;
+    let orderType = 'BUY'; // 'BUY' or 'SELL'
+
+    async function fetchRate() {
+        try {
+            const res = await fetch('https://open.er-api.com/v6/latest/USD');
+            const data = await res.json();
+            const rate = data.rates.JPY.toFixed(3);
+            document.getElementById('entry-price').value = rate;
+            calculate();
+        } catch (e) {}
+    }
+
+    function setType(type) {
+        orderType = type;
+        document.getElementById('btn-buy').classList.toggle('active', type === 'BUY');
+        document.getElementById('btn-sell').classList.toggle('active', type === 'SELL');
+        calculate();
+    }
+
+    function setLev(val, btn) {
+        leverage = val;
+        document.querySelectorAll('.lev-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        calculate();
+    }
+
+    function calculate() {
+        const cap = parseFloat(document.getElementById('capital').value) || 0;
+        const entry = parseFloat(document.getElementById('entry-price').value) || 0;
+        const manual = parseFloat(document.getElementById('manual-units').value);
+        
+        // 推奨通貨数
+        const recUnits = Math.floor((cap * leverage) / entry);
+        document.getElementById('rec-units').innerText = recUnits.toLocaleString();
+
+        const activeUnits = (manual > 0) ? manual : recUnits;
+        const riskJpy = cap * 0.02;
+
+        // pips計算 (1pip = 0.01円)
+        const slPips = activeUnits > 0 ? (riskJpy / activeUnits) : 0;
+        const tpPips = slPips * 2;
+
+        let slPrice, tpPrice;
+        if (orderType === 'BUY') {
+            slPrice = entry - slPips;
+            tpPrice = entry + tpPips;
+        } else {
+            slPrice = entry + slPips;
+            tpPrice = entry - tpPips;
+        }
+
+        document.getElementById('disp-entry').innerText = entry.toFixed(3);
+        document.getElementById('disp-sl').innerText = activeUnits > 0 ? slPrice.toFixed(3) : "---";
+        document.getElementById('disp-tp').innerText = activeUnits > 0 ? tpPrice.toFixed(3) : "---";
+        document.getElementById('timestamp').innerText = "計算日時: " + new Date().toLocaleString();
+    }
+
+    function saveImage() {
+        document.getElementById('save-btn').style.display = 'none';
+        html2canvas(document.querySelector("#capture-area"), { scale: 2, backgroundColor: "#F2F2F7" }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `FX注文_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            document.getElementById('save-btn').style.display = 'block';
+        });
+    }
+    fetchRate();
+</script>
+</body>
+</html>
