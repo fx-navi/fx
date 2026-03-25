@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FXリスク管理くん Pro+</title>
+    <title>FX資金管理くん Simplest</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
@@ -15,38 +15,39 @@
         h1 { font-size: 1.2rem; text-align: center; margin: 0 0 15px; color: var(--primary); }
         
         .section-label { font-weight: bold; font-size: 0.85rem; margin-bottom: 6px; color: #666; display: block; }
-        input { width: 100%; padding: 10px; border: 1.5px solid #E5E5EA; border-radius: 10px; font-size: 1rem; box-sizing: border-box; margin-bottom: 12px; outline: none; }
+        input { width: 100%; padding: 12px; border: 1.5px solid #E5E5EA; border-radius: 10px; font-size: 1.1rem; box-sizing: border-box; margin-bottom: 12px; outline: none; }
         input:focus { border-color: var(--primary); }
 
+        /* レバレッジボタン */
         .lev-grid { display: flex; gap: 5px; background: #E5E5EA; padding: 4px; border-radius: 12px; margin-bottom: 15px; }
-        .lev-btn { flex: 1; border: none; background: none; padding: 8px 0; font-size: 0.85rem; font-weight: bold; cursor: pointer; border-radius: 9px; }
+        .lev-btn { flex: 1; border: none; background: none; padding: 10px 0; font-size: 0.9rem; font-weight: bold; cursor: pointer; border-radius: 9px; transition: 0.2s; }
         .lev-btn.active { background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: var(--primary); }
 
-        /* 結果表示エリア */
+        /* 結果表示 */
         .res-container { background: #F9F9F9; border-radius: 15px; padding: 15px; border: 1px solid #EEE; }
-        .recommend-box { text-align: center; background: #e7f3ff; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
-        .rec-val { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
         
-        /* 手入力エリアを強調 */
-        .manual-input-area { background: #fff; border: 2px solid var(--primary); padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        .recommend-box { text-align: center; background: #e7f3ff; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #cce5ff; }
+        .rec-val { font-size: 2.2rem; font-weight: 800; color: var(--primary); display: block; line-height: 1; margin-top: 5px; }
+        
+        .manual-input-area { background: #fff; border: 2px solid var(--primary); padding: 12px; border-radius: 12px; margin-bottom: 15px; }
 
-        .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-        .res-item { background: white; padding: 10px; border-radius: 10px; text-align: center; border: 1px solid #F0F0F0; }
-        .val { display: block; font-size: 1.1rem; font-weight: bold; }
+        .pips-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .pips-item { background: white; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #F0F0F0; }
+        .val { display: block; font-size: 1.3rem; font-weight: bold; }
         
-        .save-btn { width: 100%; padding: 14px; background: var(--success); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .save-btn { width: 100%; padding: 14px; background: var(--success); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
         #timestamp { font-size: 0.7rem; color: #CCC; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="card" id="capture-area">
-    <h1>FXリスク管理計算機</h1>
+    <h1>FX資金管理シミュレーター</h1>
     
     <label class="section-label">手元資金 (円)</label>
     <input type="number" id="capital" value="100000" inputmode="numeric" oninput="calculate()">
 
-    <label class="section-label">レバレッジ</label>
+    <label class="section-label">レバレッジ選択</label>
     <div class="lev-grid">
         <button class="lev-btn" onclick="setLev(1, this)">1倍</button>
         <button class="lev-btn" onclick="setLev(5, this)">5倍</button>
@@ -54,39 +55,38 @@
         <button class="lev-btn" onclick="setLev(25, this)">25倍</button>
     </div>
 
-    <label class="section-label">ドル円レート</label>
+    <label class="section-label">ドル円レート (USD/JPY)</label>
     <input type="number" id="rate" step="0.01" value="150.00" inputmode="decimal" oninput="calculate()">
 
     <div class="res-container">
         <div class="recommend-box">
-            <span class="section-label" style="color:var(--primary)">推奨注文数 (目安)</span>
-            <span class="rec-val" id="rec-units">0</span> <small>通貨</small>
+            <span class="section-label" style="color:var(--primary)">推奨の注文通貨数 (目安)</span>
+            <span class="rec-val" id="rec-units">0</span>
+            <small style="color:var(--primary); font-weight:bold;">Units</small>
         </div>
 
         <div class="manual-input-area">
-            <label class="section-label" style="color:var(--primary)">★ 実際に注文する数量を入力</label>
-            <input type="number" id="manual-units" placeholder="例: 1000" inputmode="numeric" oninput="calculate()">
-            <small style="color:#666; font-size:0.75rem;">※未入力なら目安の数で計算します</small>
+            <label class="section-label" style="color:var(--primary)">実際に注文する通貨数を入力</label>
+            <input type="number" id="manual-units" placeholder="例: 5000" inputmode="numeric" oninput="calculate()">
+            <small style="color:#666; font-size:0.75rem;">※入力すると下のpipsが再計算されます</small>
         </div>
 
-        <div class="grid-2col">
-            <div class="res-item">
-                <span class="section-label">損切り幅 (2%)</span>
+        <div class="pips-grid">
+            <div class="pips-item">
+                <span class="section-label">損切り (資金2%)</span>
                 <span class="val" id="res-sl" style="color:var(--danger)">0.0 pips</span>
+                <small id="risk-jpy" style="font-size:0.7rem; color:#999;">(損失: 0円)</small>
             </div>
-            <div class="res-item">
-                <span class="section-label">利確幅 (倍返し)</span>
+            <div class="pips-item">
+                <span class="section-label">利確 (損小利大)</span>
                 <span class="val" id="res-tp" style="color:var(--success)">0.0 pips</span>
+                <small style="font-size:0.7rem; color:#999;">(リスク比 1:2)</small>
             </div>
-        </div>
-        
-        <div id="risk-info" style="font-size: 0.8rem; text-align: center; color: #666;">
-            最大損失額: <span id="risk-jpy">0</span> 円
         </div>
     </div>
     
     <div id="timestamp"></div>
-    <button class="save-btn" id="save-btn" onclick="saveImage()">📸 画像で保存</button>
+    <button class="save-btn" id="save-btn" onclick="saveImage()">📸 結果を画像で保存</button>
 </div>
 
 <script>
@@ -94,61 +94,4 @@
 
     async function fetchRate() {
         try {
-            const res = await fetch('https://open.er-api.com/v6/latest/USD');
-            const data = await res.json();
-            document.getElementById('rate').value = data.rates.JPY.toFixed(2);
-            calculate();
-        } catch (e) { console.log("Rate fetch failed"); }
-    }
-
-    function setLev(val, btn) {
-        leverage = val;
-        document.querySelectorAll('.lev-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        calculate();
-    }
-
-    function calculate() {
-        const cap = parseFloat(document.getElementById('capital').value) || 0;
-        const rate = parseFloat(document.getElementById('rate').value) || 0;
-        const manual = parseFloat(document.getElementById('manual-units').value);
-        
-        if (cap <= 0 || rate <= 0) return;
-
-        // 1. 推奨注文数の計算 (目安)
-        const recUnits = Math.floor((cap * leverage) / rate);
-        document.getElementById('rec-units').innerText = recUnits.toLocaleString();
-
-        // 2. 計算に使用する通貨数を決定（手入力があればそれを優先、なければ推奨値）
-        const activeUnits = (manual > 0) ? manual : recUnits;
-
-        // 3. 損切り・利確pipsの計算
-        // 損失額(資金の2%) = 通貨数 × (損切り幅(円))
-        // 損切り幅(pips) = (損失額 ÷ 通貨数) × 100
-        const riskJpy = cap * 0.02;
-        const slPips = activeUnits > 0 ? (riskJpy / activeUnits) * 100 : 0;
-        const tpPips = slPips * 2;
-
-        // 表示反映
-        document.getElementById('res-sl').innerText = slPips.toFixed(1) + " pips";
-        document.getElementById('res-tp').innerText = tpPips.toFixed(1) + " pips";
-        document.getElementById('risk-jpy').innerText = riskJpy.toLocaleString();
-        document.getElementById('timestamp').innerText = "計算日時: " + new Date().toLocaleString();
-    }
-
-    function saveImage() {
-        const btn = document.getElementById('save-btn');
-        btn.style.visibility = 'hidden';
-        html2canvas(document.querySelector("#capture-area"), { scale: 2, backgroundColor: "#F2F2F7" }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `FXメモ_${new Date().getTime()}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-            btn.style.visibility = 'visible';
-        });
-    }
-
-    fetchRate();
-</script>
-</body>
-</html>
+            const res = await fetch('
