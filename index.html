@@ -3,140 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FX安全トレード・ナビ</title>
+    <title>FX実戦ナビ Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        :root { --safe: #34C759; --warning: #FF9500; --danger: #FF3B30; --primary: #007AFF; --bg: #F2F2F7; }
+        :root { --safe: #34C759; --danger: #FF3B30; --primary: #007AFF; --bg: #F2F2F7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #1C1C1E; font-size: 14px; }
         .card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); max-width: 480px; margin: 0 auto; }
-        .disclaimer { font-size: 0.7rem; color: #d9534f; background: #fff5f5; border: 1px solid #f8d7da; padding: 12px; border-radius: 10px; margin-bottom: 20px; line-height: 1.4; }
+        
+        /* 警告文：より目立つように */
+        .disclaimer { font-size: 0.75rem; color: #d9534f; background: #fff5f5; border: 2px solid #f8d7da; padding: 12px; border-radius: 10px; margin-bottom: 20px; line-height: 1.4; font-weight: bold; }
+        
+        /* レート表示：参考であることを強調 */
         .live-rate-box { background: #1c1c1e; color: #fff; padding: 12px; border-radius: 16px; margin-bottom: 20px; text-align: center; }
-        .live-price { font-family: monospace; font-size: 1.8rem; color: var(--safe); display: block; margin: 5px 0; }
-        .update-tag { font-size: 0.65rem; color: #888; display: flex; justify-content: center; gap: 8px; align-items: center; }
-        .step-title { font-weight: bold; font-size: 0.9rem; margin: 15px 0 8px; color: #333; }
-        input { width: 100%; padding: 12px; border: 2px solid #EEE; border-radius: 10px; font-size: 1.1rem; box-sizing: border-box; outline: none; }
+        .live-price { font-family: monospace; font-size: 1.8rem; color: #aaa; display: block; margin: 5px 0; }
+        .update-tag { font-size: 0.65rem; color: #666; }
+
+        .step-title { font-weight: bold; font-size: 0.95rem; margin: 20px 0 10px; color: #333; display: flex; align-items: center; gap: 8px; }
+        .step-num { background: var(--primary); color: #fff; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8rem; }
+        
+        /* 入力欄を大きく、入力しやすく */
+        label { font-size: 0.8rem; color: #666; margin-bottom: 5px; display: block; }
+        input { width: 100%; padding: 15px; border: 2px solid #EEE; border-radius: 12px; font-size: 1.2rem; box-sizing: border-box; outline: none; transition: 0.2s; background: #fff; }
+        input:focus { border-color: var(--primary); background: #f9f9ff; }
+        
+        /* エントリー価格（ここが一番大事） */
+        .entry-input-box { background: #fffceb; border: 2px solid #ffd700; border-radius: 15px; padding: 15px; margin-bottom: 10px; }
+
         .type-grid { display: flex; gap: 8px; margin-bottom: 10px; }
-        .type-btn { flex: 1; border: 2px solid #EEE; background: #FFF; padding: 12px; font-weight: bold; border-radius: 12px; cursor: pointer; font-size: 0.85rem; }
+        .type-btn { flex: 1; border: 2px solid #EEE; background: #FFF; padding: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; }
         .type-btn.buy.active { background: var(--safe); color: #fff; border-color: var(--safe); }
         .type-btn.sell.active { background: var(--danger); color: #fff; border-color: var(--danger); }
-        .lev-grid { display: flex; gap: 4px; background: #EEE; padding: 4px; border-radius: 12px; margin-top: 8px; }
-        .lev-btn { flex: 1; border: none; background: none; padding: 10px 0; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 0.8rem; }
+
+        .lev-grid { display: flex; gap: 4px; background: #EEE; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
+        .lev-btn { flex: 1; border: none; background: none; padding: 12px 0; font-weight: bold; cursor: pointer; border-radius: 10px; }
         .lev-btn.active { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: var(--primary); }
-        .result-section { background: #f8f9fa; border: 1px solid #ddd; border-radius: 18px; padding: 15px; margin-top: 10px; }
+
+        /* 結果表示 */
+        .result-section { background: #f8f9fa; border: 1px solid #ddd; border-radius: 18px; padding: 15px; margin-top: 20px; }
         .unit-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 12px; border-radius: 10px; }
-        .unit-val { font-size: 1.4rem; font-weight: 900; }
         .safe-box { background: #eaffed; border: 1px solid var(--safe); color: #155724; }
-        .max-box { background: #fff5f5; border: 1px solid var(--danger); color: #721c24; }
-        .manual-input-box { border: 3px solid var(--primary); border-radius: 16px; padding: 16px; margin: 15px 0; background: #fff; box-shadow: 0 4px 12px rgba(0,122,255,0.1); }
-        .manual-input { border: none; border-bottom: 2px solid var(--primary); border-radius: 0; font-size: 1.8rem; text-align: center; color: var(--primary); font-weight: bold; margin-top: 5px; }
-        .order-guide { background: #1c1c1e; color: #fff; border-radius: 16px; padding: 15px; margin-top: 10px; }
-        .order-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #333; align-items: center; }
-        .order-val { font-family: monospace; font-size: 1.3rem; font-weight: bold; }
-        .direction-hint { font-size: 0.75rem; color: #aaa; text-align: center; margin-top: 10px; }
-        .save-btn { width: 100%; padding: 16px; background: #444; color: #fff; border: none; border-radius: 14px; font-weight: bold; margin-top: 20px; cursor: pointer; }
-        .refresh-btn { background: #333; color: white; border: none; padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; cursor: pointer; }
+        .unit-val { font-size: 1.6rem; font-weight: 900; }
+
+        /* 通貨数手入力（ここが重要） */
+        .manual-input-box { border: 3px solid var(--primary); border-radius: 16px; padding: 15px; margin: 20px 0; background: #fff; }
+
+        .order-guide { background: #1c1c1e; color: #fff; border-radius: 16px; padding: 20px; }
+        .order-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #333; align-items: center; }
+        .order-val { font-family: monospace; font-size: 1.5rem; font-weight: bold; }
+
+        .save-btn { width: 100%; padding: 18px; background: #444; color: #fff; border: none; border-radius: 15px; font-weight: bold; margin-top: 20px; cursor: pointer; font-size: 1rem; }
     </style>
 </head>
 <body>
 
 <div class="card" id="capture-area">
     <div class="disclaimer">
-        ⚠ 数値は目安です。注文前にアプリの最新価格を確認し、1,000通貨等の最小単位に調整してください。
+        ⚠【重要】自動取得のレートはズレます。<br>
+        必ず証券アプリの「現在の価格」を下の黄色い枠に入力してください。
     </div>
 
     <div class="live-rate-box">
-        <div class="update-tag">
-            参考価格（アプリと差が出ます）
-            <button class="refresh-btn" onclick="fetchRate()">更新</button>
-        </div>
+        <span class="update-tag">参考：ネット上の価格 (遅延あり)</span>
         <span class="live-price" id="current-rate">取得中...</span>
-        <div id="last-update" style="font-size: 0.6rem; color: #666;">接続しています</div>
     </div>
 
-    <div class="step-title">① 方向を選ぶ</div>
+    <div class="step-title"><span class="step-num">1</span> 方向を選ぶ</div>
     <div class="type-grid">
         <button class="type-btn buy active" id="btn-buy" onclick="setType('BUY')">買い (上昇予想)</button>
         <button class="type-btn sell" id="btn-sell" onclick="setType('SELL')">売り (下落予想)</button>
     </div>
 
-    <div class="step-title">② 資金とレバレッジ</div>
+    <div class="step-title"><span class="step-num">2</span> 資金とレバレッジ</div>
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-        <input type="number" id="capital" value="100000" oninput="calculate()">
-        <div class="lev-grid">
-            <button class="lev-btn" onclick="setLev(5, this)">5倍</button>
-            <button class="lev-btn active" onclick="setLev(10, this)">10倍</button>
-            <button class="lev-btn" onclick="setLev(25, this)">25倍</button>
+        <div>
+            <label>使う資金 (円)</label>
+            <input type="number" id="capital" value="100000" oninput="calculate()">
+        </div>
+        <div>
+            <label>レバレッジ</label>
+            <div class="lev-grid">
+                <button class="lev-btn" onclick="setLev(5, this)">5倍</button>
+                <button class="lev-btn active" onclick="setLev(10, this)">10倍</button>
+                <button class="lev-btn" onclick="setLev(25, this)">25倍</button>
+            </div>
         </div>
     </div>
 
-    <div class="step-title">③ 注文する価格</div>
-    <input type="number" id="entry-price" step="0.001" oninput="calculate()">
+    <div class="step-title"><span class="step-num">3</span> 今の価格を入力（アプリを確認）</div>
+    <div class="entry-input-box">
+        <label style="color:var(--primary); font-weight:bold;">★ 証券アプリの現在価格を入力</label>
+        <input type="number" id="entry-price" step="0.001" placeholder="例: 158.920" oninput="calculate()">
+    </div>
 
     <div class="result-section">
         <div class="unit-box safe-box">
-            <div style="font-size:0.75rem;"><b>ゆとり目安</b><br>リスクを抑えた数量</div>
+            <div style="font-size:0.8rem;"><b>ゆとり目安 (推奨)</b><br><small>リスクを抑えた数量</small></div>
             <div class="unit-val" id="safe-units">0</div>
         </div>
-        <div class="unit-box max-box">
-            <div style="font-size:0.75rem;"><b>上限の目安</b><br>強制決済に注意</div>
-            <div class="unit-val" id="max-units">0</div>
-        </div>
+        <p style="font-size:0.7rem; color:#666; margin:0 5px;">※ 1,000通貨単位の口座なら「5,000」等に調整</p>
     </div>
 
     <div class="manual-input-box">
-        <div style="font-weight:bold; color:var(--primary); font-size:0.85rem; text-align:center;">実際に注文する数量を入力</div>
-        <input type="number" id="manual-units" class="manual-input" placeholder="例: 1000" oninput="calculate()">
+        <label style="color:var(--primary); font-weight:bold; text-align:center; display:block;">実際に注文する数量を入力</label>
+        <input type="number" id="manual-units" style="border:none; border-bottom:3px solid var(--primary); border-radius:0; font-size:2rem; text-align:center; font-weight:900;" placeholder="例: 5000" oninput="calculate()">
     </div>
 
-    <div class="step-title">④ アプリに入れる数値</div>
+    <div class="step-title"><span class="step-num">4</span> アプリに入れる数値</div>
     <div class="order-guide">
         <div class="order-item">
-            <span style="font-size:0.75rem;">注文数量 (Units)</span>
-            <span class="order-val" id="disp-units">0</span>
+            <span style="font-size:0.8rem; color:#aaa;">注文数量</span>
+            <span class="order-val" id="disp-units">---</span>
         </div>
         <div class="order-item">
-            <span style="font-size:0.75rem; color:var(--danger)">損切り価格</span>
+            <span style="font-size:0.8rem; color:var(--danger)">損切り価格</span>
             <span class="order-val" style="color:var(--danger)" id="disp-sl">---</span>
         </div>
         <div class="order-item" style="border:none;">
-            <span style="font-size:0.75rem; color:var(--safe)">利益確定価格</span>
+            <span style="font-size:0.8rem; color:var(--safe)">利益確定価格</span>
             <span class="order-val" style="color:var(--safe)" id="disp-tp">---</span>
         </div>
-        <div class="direction-hint" id="direction-hint">買い：下で損 ／ 上で利確</div>
     </div>
     
-    <button class="save-btn" onclick="saveImage()">この計画を画像保存</button>
+    <button class="save-btn" onclick="saveImage()">このトレード計画を画像保存</button>
 </div>
 
 <script>
     let leverage = 10;
     let orderType = 'BUY';
 
-    // エラーに強く、高速なAPIに切り替え
     async function fetchRate() {
-        const rateDisplay = document.getElementById('current-rate');
-        const updateDisplay = document.getElementById('last-update');
-        
         try {
-            // 無料かつCORS制限のない安定したAPIを使用
-            const res = await fetch('https://open.er-api.com/v6/latest/USD');
-            if (!res.ok) throw new Error('Network error');
+            const res = await fetch(`https://open.er-api.com/v6/latest/USD`);
             const data = await res.json();
             const rate = data.rates.JPY;
-            
-            rateDisplay.innerText = rate.toFixed(3);
-            updateDisplay.innerText = "最終取得: " + new Date().toLocaleTimeString();
-            
-            // 入力欄が空か初期値の場合のみレートを反映
+            document.getElementById('current-rate').innerText = rate.toFixed(3);
+            // 最初だけ、入力欄に参考値を入れる
             const entryInput = document.getElementById('entry-price');
-            if(!entryInput.value || entryInput.value == 0) {
-                entryInput.value = rate.toFixed(3);
-            }
+            if(!entryInput.value) entryInput.value = rate.toFixed(3);
             calculate();
         } catch (e) {
-            rateDisplay.innerText = "158.900"; // 万が一のエラー時のフォールバック値（現在の相場付近）
-            updateDisplay.innerText = "オフライン表示中 (手入力推奨)";
-            console.error(e);
+            document.getElementById('current-rate').innerText = "158.900 (仮)";
         }
     }
 
@@ -144,7 +150,6 @@
         orderType = type;
         document.getElementById('btn-buy').className = 'type-btn buy' + (type === 'BUY' ? ' active' : '');
         document.getElementById('btn-sell').className = 'type-btn sell' + (type === 'SELL' ? ' active' : '');
-        document.getElementById('direction-hint').innerText = (type === 'BUY') ? "買い：下で損 ／ 上で利確" : "売り：上で損 ／ 下で利確";
         calculate();
     }
 
@@ -160,16 +165,17 @@
         const entry = parseFloat(document.getElementById('entry-price').value) || 0;
         const manual = parseFloat(document.getElementById('manual-units').value);
         
+        if(entry <= 0) return;
+
         const maxUnits = Math.floor((cap * leverage) / entry);
         const safeUnits = Math.floor(maxUnits * 0.6);
 
-        document.getElementById('max-units').innerText = maxUnits.toLocaleString();
         document.getElementById('safe-units').innerText = safeUnits.toLocaleString();
 
         const activeUnits = (manual > 0) ? manual : safeUnits;
         document.getElementById('disp-units').innerText = activeUnits.toLocaleString();
 
-        const riskJpy = cap * 0.02;
+        const riskJpy = cap * 0.02; // 2%リスク
         const slDist = (riskJpy / activeUnits);
         const tpDist = slDist * 2;
 
@@ -190,8 +196,6 @@
     }
 
     fetchRate();
-    // 3分ごとに自動更新
-    setInterval(fetchRate, 180000);
 </script>
 </body>
 </html>
