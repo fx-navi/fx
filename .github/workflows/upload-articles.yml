@@ -1,0 +1,64 @@
+name: Upload articles to WordPress
+
+# articles/ 内の HTML 記事が変更されたら、WordPress に自動アップロード（新規/更新）する。
+on:
+  push:
+    branches:
+      - main
+      - claude/blog-upload-automation-bli3R
+    paths:
+      - "articles/**.html"
+      - "scripts/upload_to_wordpress.py"
+  # 手動実行（全記事を対象に再アップロード）も可能
+  workflow_dispatch:
+    inputs:
+      all:
+        description: "全記事を対象にする（true で articles/ 内すべて）"
+        type: boolean
+        default: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # push の差分検出のために直前コミットも取得
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Determine changed articles
+        id: changed
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.all }}" = "true" ]; then
+            echo "全記事を対象にします。"
+            echo "files=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            # 比較対象が取れない場合（初回 push 等）は全記事
+            echo "差分の基準コミットが取得できないため、全記事を対象にします。"
+            echo "files=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only --diff-filter=ACMR "$BEFORE" "${{ github.sha }}" -- 'articles/*.html' | tr '\n' ' ')
+          echo "変更された記事: ${CHANGED:-（なし）}"
+          echo "files=$CHANGED" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to WordPress
+        env:
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          DEFAULT_STATUS: draft
+        run: |
+          python scripts/upload_to_wordpress.py ${{ steps.changed.outputs.files }}
